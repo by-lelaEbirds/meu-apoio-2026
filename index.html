@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
     <title>Meu Apoio 2026</title>
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <script>
@@ -13,122 +13,98 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#0f172a",
-                        "primary-light": "#1e293b",
-                        "accent-cyan": "#06b6d4",
-                        "accent-blue": "#3b82f6",
-                        "text-light": "#f8fafc",
-                        "text-muted": "#94a3b8",
-                        "surface-dark": "#1e293b",
+                        "primary": "#0f172a", "surface": "#1e293b", "accent": "#06b6d4",
                     },
-                    fontFamily: {
-                        "display": ["Public Sans", "sans-serif"]
-                    },
-                    boxShadow: {
-                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15)',
-                        'glow': '0 0 20px rgba(6, 182, 212, 0.15)',
-                    }
-                },
-            },
+                    fontFamily: { "display": ["Public Sans", "sans-serif"] }
+                }
+            }
         }
     </script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="relative flex min-h-screen w-full flex-col bg-primary font-display text-text-light pb-safe overflow-x-hidden selection:bg-accent-cyan selection:text-primary">
-    
-    <header class="sticky top-0 z-40 w-full bg-primary/95 backdrop-blur-md border-b border-white/5 shadow-sm">
-        <div class="flex items-center justify-between p-4 pb-2">
+<body class="bg-primary text-slate-100 font-display pb-safe selection:bg-accent selection:text-primary">
+
+    <header class="sticky top-0 z-50 bg-primary/95 backdrop-blur-md border-b border-white/10">
+        <div class="flex items-center justify-between p-4">
             <div class="flex items-center gap-3">
-                <div class="flex items-center justify-center size-10 rounded-lg bg-gradient-to-br from-accent-blue to-accent-cyan text-white shadow-lg shadow-accent-blue/20">
-                    <span class="material-symbols-outlined text-[24px]">how_to_vote</span>
+                <div class="p-2 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg shadow-lg">
+                    <span class="material-symbols-outlined text-white">how_to_vote</span>
                 </div>
-                <div>
-                    <h1 class="text-lg font-bold leading-none tracking-tight text-white">Meu Apoio 2026</h1>
-                    <span class="text-xs font-medium text-text-muted">Editor Oficial</span>
-                </div>
+                <h1 class="font-bold text-lg">Meu Apoio 2026</h1>
             </div>
+            <button id="install-btn" class="hidden text-xs bg-white/10 px-3 py-1 rounded-full font-medium hover:bg-white/20">
+                📲 Instalar App
+            </button>
         </div>
-        <div class="px-4 pb-4">
-            <div class="flex items-center justify-between mb-2">
-                <span id="step-label" class="text-xs font-bold uppercase tracking-wider text-accent-cyan">Passo 1 de 3</span>
-                <span id="step-title" class="text-xs font-medium text-text-muted">Seleção</span>
-            </div>
-            <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                <div id="progress-bar" class="h-full bg-gradient-to-r from-accent-blue to-accent-cyan w-1/3 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)] transition-all duration-500 ease-out"></div>
-            </div>
+        <div class="h-1 bg-surface w-full">
+            <div id="progress-bar" class="h-full bg-accent w-1/3 transition-all duration-500"></div>
         </div>
     </header>
 
-    <main class="flex-1 w-full max-w-md mx-auto md:max-w-3xl relative">
+    <main class="max-w-md mx-auto md:max-w-2xl p-5 pb-24 relative min-h-screen">
         
-        <section id="step-1" class="step-section px-5 pt-6 pb-20">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold leading-tight text-white tracking-tight">Escolha seu Candidato</h2>
-                <p class="text-text-muted text-sm mt-1">Selecione o político que você deseja apoiar.</p>
-            </div>
+        <section id="step-1" class="step-section">
+            <h2 class="text-2xl font-bold mb-2">Escolha o Candidato</h2>
+            <input id="search-input" class="w-full bg-surface border-0 rounded-xl py-3 px-4 mb-6 ring-1 ring-white/10 focus:ring-accent placeholder:text-slate-500" placeholder="Buscar político..." type="text"/>
             
-            <div class="mb-6 sticky top-[130px] z-30 bg-primary/95 backdrop-blur-sm py-2">
-                <label class="relative flex w-full items-center">
-                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-text-muted">
-                        <span class="material-symbols-outlined">search</span>
-                    </div>
-                    <input id="search-input" class="block w-full rounded-xl border-0 py-3.5 pl-11 pr-4 text-white bg-surface-dark shadow-lg ring-1 ring-white/5 placeholder:text-text-muted focus:ring-2 focus:ring-accent-cyan focus:outline-none transition-all" placeholder="Buscar candidato..." type="text"/>
+            <div id="loading" class="text-center py-10 text-slate-500">Carregando candidatos...</div>
+            <div id="template-grid" class="grid grid-cols-2 gap-4"></div>
+        </section>
+
+        <section id="step-2" class="step-section hidden">
+            <button onclick="changeStep(1)" class="flex items-center text-slate-400 mb-4 hover:text-white"><span class="material-symbols-outlined text-sm mr-1">arrow_back</span> Voltar</button>
+            
+            <h2 class="text-2xl font-bold mb-4">Ajuste sua Foto</h2>
+
+            <div class="flex gap-2 mb-4 p-1 bg-surface rounded-lg w-fit mx-auto border border-white/5">
+                <button onclick="setFormat('square')" id="btn-square" class="format-btn active px-4 py-2 rounded-md text-sm font-medium transition-all">Quadrado (Feed)</button>
+                <button onclick="setFormat('story')" id="btn-story" class="format-btn px-4 py-2 rounded-md text-sm font-medium transition-all text-slate-400">Vertical (Story)</button>
+            </div>
+
+            <div class="relative w-full bg-surface rounded-2xl overflow-hidden shadow-2xl border border-white/10 touch-none" id="canvas-container">
+                <canvas id="editor-canvas" class="w-full h-full cursor-move"></canvas>
+                
+                <div id="upload-instruction" class="absolute inset-0 flex flex-col items-center justify-center bg-black/50 pointer-events-none">
+                    <span class="material-symbols-outlined text-4xl mb-2">touch_app</span>
+                    <p class="text-sm">Arraste e dê zoom para ajustar</p>
+                </div>
+                
+                <label class="absolute bottom-4 right-4 bg-accent text-white p-3 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform z-10">
+                    <span class="material-symbols-outlined">add_a_photo</span>
+                    <input type="file" id="file-input" accept="image/*" class="hidden">
                 </label>
             </div>
 
-            <div id="template-grid" class="grid grid-cols-2 gap-4 pb-8">
-                </div>
+            <div class="mt-4 flex items-center gap-3 px-2">
+                <span class="material-symbols-outlined text-slate-400">zoom_out</span>
+                <input type="range" id="zoom-slider" min="0.1" max="3" step="0.01" value="1" class="w-full accent-accent h-2 bg-surface rounded-lg appearance-none cursor-pointer">
+                <span class="material-symbols-outlined text-slate-400">zoom_in</span>
+            </div>
+
+            <button onclick="finishEdit()" class="w-full mt-6 bg-gradient-to-r from-blue-600 to-cyan-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-cyan-500/20 active:scale-95 transition-all">
+                Gerar Imagem Oficial ✨
+            </button>
         </section>
 
-        <section id="step-2" class="step-section hidden px-5 pt-6 pb-20">
-            <button onclick="changeStep(1)" class="flex items-center text-text-muted hover:text-white mb-6 transition-colors group">
-                <span class="material-symbols-outlined text-sm mr-1 group-hover:-translate-x-1 transition-transform">arrow_back</span> Voltar
-            </button>
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold leading-tight text-white tracking-tight">Sua Foto</h2>
-                <p class="text-text-muted text-sm mt-1">Escolha uma foto clara e centralizada.</p>
-            </div>
-
-            <div class="w-full aspect-square bg-surface-dark rounded-2xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative shadow-card group hover:border-accent-cyan/50 transition-colors">
-                <img id="preview-img" class="absolute inset-0 w-full h-full object-cover hidden" alt="Preview">
-                <div id="upload-placeholder" class="flex flex-col items-center text-text-muted group-hover:text-accent-cyan transition-colors">
-                    <span class="material-symbols-outlined text-5xl mb-2">add_a_photo</span>
-                    <span class="text-sm font-medium">Nenhuma foto selecionada</span>
-                </div>
-            </div>
-
-            <label class="mt-6 flex items-center justify-center gap-2 w-full bg-surface-dark border border-white/10 text-white p-4 rounded-xl cursor-pointer hover:bg-surface-dark/80 transition-all active:scale-95 shadow-lg ring-1 ring-white/5">
-                <span class="material-symbols-outlined">image</span>
-                <span class="font-bold">Abrir Galeria</span>
-                <input type="file" id="file-input" accept="image/*" class="hidden">
-            </label>
-        </section>
-
-        <section id="step-3" class="step-section hidden px-5 pt-6 pb-20">
-            <button onclick="changeStep(1)" class="flex items-center text-text-muted hover:text-white mb-6 transition-colors group">
-                <span class="material-symbols-outlined text-sm mr-1 group-hover:rotate-180 transition-transform">restart_alt</span> Criar Novo
-            </button>
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold leading-tight text-white tracking-tight">Pronto!</h2>
-                <p class="text-text-muted text-sm mt-1">Sua imagem oficial foi gerada.</p>
-            </div>
-
-            <div class="rounded-xl overflow-hidden shadow-glow border border-white/10 mb-6 bg-surface-dark">
-                <img id="final-result" class="w-full h-auto block" alt="Resultado Final">
-            </div>
-            <canvas id="canvas-processor" class="hidden"></canvas>
-
+        <section id="step-3" class="step-section hidden text-center">
+            <h2 class="text-2xl font-bold mb-2">Ficou Show! 🎉</h2>
+            <p class="text-slate-400 text-sm mb-6">Ajude a espalhar a mensagem.</p>
+            
+            <img id="final-result" class="w-full rounded-xl shadow-2xl border border-white/10 mb-6" alt="Resultado">
+            
             <div class="grid gap-3">
-                <button onclick="downloadImage()" class="flex items-center justify-center gap-2 bg-gradient-to-r from-accent-blue to-accent-cyan text-white p-4 rounded-xl font-bold shadow-lg shadow-accent-cyan/20 hover:shadow-accent-cyan/40 active:scale-[0.98] transition-all">
+                <button onclick="shareImage()" class="bg-[#25D366] hover:bg-[#20bd5a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all">
+                    <span class="material-symbols-outlined">share</span> Compartilhar no Zap
+                </button>
+                <button onclick="downloadImage()" class="bg-surface hover:bg-white/10 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 border border-white/10 transition-all">
                     <span class="material-symbols-outlined">download</span> Baixar Imagem
                 </button>
-                <button onclick="shareImage()" class="flex items-center justify-center gap-2 bg-[#25D366] text-white p-4 rounded-xl font-bold shadow-lg hover:bg-[#20bd5a] active:scale-[0.98] transition-all">
-                    <span class="material-symbols-outlined">share</span> Enviar no WhatsApp
-                </button>
+                <button onclick="changeStep(1)" class="text-slate-400 text-sm mt-2 hover:text-white underline">Criar para outra pessoa</button>
             </div>
         </section>
 
     </main>
+
     <script src="script.js"></script>
 </body>
 </html>
