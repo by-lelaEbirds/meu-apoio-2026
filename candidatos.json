@@ -1,0 +1,20 @@
+[
+  {
+    "id": "bolsonaro_17",
+    "nome": "Bolsonaro",
+    "partido": "PL - 22",
+    "thumb": "assets/templates/bolsonaro_thumb.png",
+    "moldura_quadrada": "assets/templates/bolsonaro_sq.png",
+    "moldura_story": "assets/templates/bolsonaro_st.png",
+    "cor": "text-green-500"
+  },
+  {
+    "id": "lula_13",
+    "nome": "Lula",
+    "partido": "PT - 13",
+    "thumb": "assets/templates/lula_thumb.png",
+    "moldura_quadrada": "assets/templates/lula_sq.png",
+    "moldura_story": "assets/templates/lula_st.png",
+    "cor": "text-red-500"
+  }
+]
