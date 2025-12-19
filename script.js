@@ -1,185 +1,237 @@
-const templates = [
-    {
-        id: "bolsonaro_17",
-        name: "Bolsonaro",
-        party: "PL - 22",
-        thumb: "assets/templates/bolsonaro_thumb.png",
-        frame: "assets/templates/bolsonaro_moldura.png",
-        color: "text-green-500"
-    },
-    {
-        id: "lula_13",
-        name: "Lula",
-        party: "PT - 13",
-        thumb: "assets/templates/lula_thumb.png",
-        frame: "assets/templates/lula_moldura.png",
-        color: "text-red-500"
-    },
-    {
-        id: "marcal_28",
-        name: "Pablo Marçal",
-        party: "PRTB - 28",
-        thumb: "assets/templates/marcal_thumb.png",
-        frame: "assets/templates/marcal_moldura.png",
-        color: "text-blue-500"
-    },
-    {
-        id: "generic_blue",
-        name: "Apoio Neutro",
-        party: "Meu Candidato",
-        thumb: "assets/templates/generic_thumb.png",
-        frame: "assets/templates/generic_moldura.png",
-        color: "text-white"
-    }
-];
+// --- ESTADO GLOBAL ---
+let candidates = [];
+let selectedCandidate = null;
+let currentFormat = 'square'; // 'square' ou 'story'
+let userImg = null;
 
-let currentStep = 1;
-let selectedTemplate = null;
-let userImage = null;
+// Variáveis de Edição (Engine)
+let editState = {
+    scale: 1,
+    posX: 0,
+    posY: 0,
+    isDragging: false,
+    lastX: 0,
+    lastY: 0
+};
 
-document.addEventListener("DOMContentLoaded", () => {
-    renderTemplates();
-    document.getElementById('search-input').addEventListener('input', filterTemplates);
-    document.getElementById('file-input').addEventListener('change', handleFileUpload);
+const CANVAS_SIZE = 1080; // Resolução interna alta
+
+// --- INICIALIZAÇÃO ---
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadCandidates();
+    setupCanvasEvents();
+    
+    // PWA Install Prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        const installBtn = document.getElementById('install-btn');
+        installBtn.classList.remove('hidden');
+        installBtn.onclick = () => e.prompt();
+    });
 });
 
-function renderTemplates(filter = "") {
+async function loadCandidates() {
+    try {
+        const response = await fetch('candidatos.json');
+        candidates = await response.json();
+        document.getElementById('loading').remove();
+        renderGrid(candidates);
+    } catch (error) {
+        console.error("Erro ao carregar JSON:", error);
+        document.getElementById('loading').innerText = "Erro ao carregar lista.";
+    }
+}
+
+function renderGrid(list) {
     const grid = document.getElementById('template-grid');
     grid.innerHTML = "";
-
-    const filtered = templates.filter(t => t.name.toLowerCase().includes(filter.toLowerCase()));
-
-    filtered.forEach(t => {
-        const card = document.createElement('button');
-        card.className = "group relative flex flex-col items-center p-4 bg-surface-dark rounded-xl shadow-card hover:shadow-glow transition-all duration-300 border border-white/5 hover:border-accent-cyan/30 text-center hover:-translate-y-1";
-        card.onclick = () => selectTemplate(t);
-        
-        card.innerHTML = `
-            <div class="relative w-20 h-20 mb-3 rounded-full p-1 bg-surface-dark border border-white/10 shadow-inner overflow-hidden ring-1 ring-white/5 group-hover:ring-accent-cyan/50 transition-all">
-                <img src="${t.thumb}" alt="${t.name}" class="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500 opacity-90 group-hover:opacity-100" onerror="this.src='https://placehold.co/100x100/1e293b/FFF?text=IMG'">
-            </div>
-            <h3 class="text-base font-bold text-white leading-tight mb-1 group-hover:text-accent-cyan transition-colors">${t.name}</h3>
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wide group-hover:text-white transition-colors">${t.party}</p>
+    
+    list.forEach(c => {
+        const div = document.createElement('div');
+        div.className = "bg-surface p-3 rounded-xl border border-white/5 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center";
+        div.onclick = () => selectCandidate(c);
+        div.innerHTML = `
+            <img src="${c.thumb}" class="w-20 h-20 rounded-full object-cover mb-3 border-2 border-white/10" onerror="this.src='assets/placeholder.png'">
+            <h3 class="font-bold text-sm text-center">${c.nome}</h3>
+            <span class="text-xs text-slate-400">${c.partido}</span>
         `;
-        grid.appendChild(card);
+        grid.appendChild(div);
+    });
+    
+    // Filtro de busca
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = candidates.filter(c => c.nome.toLowerCase().includes(term));
+        renderGrid(filtered); // Cuidado: recursividade simples, ok para lista pequena
     });
 }
 
-function filterTemplates(e) {
-    renderTemplates(e.target.value);
-}
-
-function selectTemplate(template) {
-    selectedTemplate = template;
+function selectCandidate(c) {
+    selectedCandidate = c;
     changeStep(2);
+    // Se já tiver foto, redesenha
+    if(userImg) drawEditor();
 }
 
+// --- ENGINE DE IMAGEM (Canvas) ---
+
+function setFormat(format) {
+    currentFormat = format;
+    // Atualiza botões
+    document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active', 'bg-accent', 'text-white'));
+    document.getElementById(`btn-${format}`).classList.add('active', 'bg-accent', 'text-white');
+    document.getElementById(`btn-${format}`).classList.remove('text-slate-400');
+    
+    // Reseta posição e redesenha
+    resetEditor();
+}
+
+function resetEditor() {
+    editState = { scale: 1, posX: 0, posY: 0, isDragging: false, lastX: 0, lastY: 0 };
+    document.getElementById('zoom-slider').value = 1;
+    drawEditor();
+}
+
+// Upload
+document.getElementById('file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+            userImg = img;
+            document.getElementById('upload-instruction').classList.add('hidden');
+            resetEditor();
+        };
+        img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// Zoom Slider
+document.getElementById('zoom-slider').addEventListener('input', (e) => {
+    editState.scale = parseFloat(e.target.value);
+    drawEditor();
+});
+
+// Canvas Setup
+function setupCanvasEvents() {
+    const canvas = document.getElementById('editor-canvas');
+    
+    // Mouse Events
+    canvas.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', drag);
+    window.addEventListener('mouseup', endDrag);
+    
+    // Touch Events
+    canvas.addEventListener('touchstart', (e) => startDrag(e.touches[0]));
+    window.addEventListener('touchmove', (e) => drag(e.touches[0]));
+    window.addEventListener('touchend', endDrag);
+}
+
+function startDrag(e) {
+    if(!userImg) return;
+    editState.isDragging = true;
+    editState.lastX = e.clientX;
+    editState.lastY = e.clientY;
+}
+
+function drag(e) {
+    if(!editState.isDragging) return;
+    const deltaX = e.clientX - editState.lastX;
+    const deltaY = e.clientY - editState.lastY;
+    
+    editState.posX += deltaX;
+    editState.posY += deltaY;
+    
+    editState.lastX = e.clientX;
+    editState.lastY = e.clientY;
+    
+    drawEditor();
+}
+
+function endDrag() {
+    editState.isDragging = false;
+}
+
+// O CORAÇÃO: Função de Desenho
+function drawEditor() {
+    const canvas = document.getElementById('editor-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Define tamanho baseado no formato
+    // Quadrado: 1080x1080 | Story: 1080x1920
+    const width = CANVAS_SIZE;
+    const height = currentFormat === 'square' ? 1080 : 1920;
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Fundo padrão
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0, 0, width, height);
+    
+    if(userImg) {
+        ctx.save();
+        // Centraliza o pivot
+        ctx.translate(width/2 + editState.posX, height/2 + editState.posY);
+        ctx.scale(editState.scale, editState.scale);
+        
+        // Desenha imagem centralizada
+        ctx.drawImage(userImg, -userImg.width/2, -userImg.height/2);
+        ctx.restore();
+    }
+    
+    // Desenha Moldura (Overlay)
+    if(selectedCandidate) {
+        const frameUrl = currentFormat === 'square' ? selectedCandidate.moldura_quadrada : selectedCandidate.moldura_story;
+        const frame = new Image();
+        frame.src = frameUrl;
+        // Espera carregar se não estiver em cache (hack simples)
+        if(frame.complete) {
+            ctx.drawImage(frame, 0, 0, width, height);
+        } else {
+            frame.onload = () => ctx.drawImage(frame, 0, 0, width, height);
+        }
+    }
+}
+
+function finishEdit() {
+    const canvas = document.getElementById('editor-canvas');
+    const finalImg = document.getElementById('final-result');
+    finalImg.src = canvas.toDataURL('image/png', 0.9); // Qualidade 90%
+    changeStep(3);
+}
+
+// --- UTILITÁRIOS ---
 function changeStep(step) {
     document.querySelectorAll('.step-section').forEach(el => el.classList.add('hidden'));
     document.getElementById(`step-${step}`).classList.remove('hidden');
     
-    const progressBar = document.getElementById('progress-bar');
-    const stepLabel = document.getElementById('step-label');
-    const stepTitle = document.getElementById('step-title');
-
-    if(step === 1) {
-        progressBar.style.width = "33%";
-        stepLabel.innerText = "Passo 1 de 3";
-        stepTitle.innerText = "Seleção";
-    } else if(step === 2) {
-        progressBar.style.width = "66%";
-        stepLabel.innerText = "Passo 2 de 3";
-        stepTitle.innerText = "Upload";
-    } else if(step === 3) {
-        progressBar.style.width = "100%";
-        stepLabel.innerText = "Passo 3 de 3";
-        stepTitle.innerText = "Pronto";
-    }
-    
-    currentStep = step;
-    window.scrollTo({top: 0, behavior: 'smooth'});
-}
-
-function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                userImage = img;
-                document.getElementById('preview-img').src = img.src;
-                document.getElementById('preview-img').classList.remove('hidden');
-                document.getElementById('upload-placeholder').classList.add('hidden');
-                setTimeout(() => processImage(), 300); 
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-async function processImage() {
-    if (!userImage || !selectedTemplate) return;
-
-    changeStep(3);
-    const canvas = document.getElementById('canvas-processor');
-    const ctx = canvas.getContext('2d');
-
-    const width = 1080;
-    const height = 1480; 
-
-    canvas.width = width;
-    canvas.height = height;
-
-    // Fundo
-    ctx.fillStyle = "#1e293b";
-    ctx.fillRect(0, 0, width, height);
-
-    // Foto Usuario (Crop Cover)
-    const scale = Math.max(width / userImage.width, 1080 / userImage.height);
-    const x = (width / 2) - (userImage.width / 2) * scale;
-    const y = (1080 / 2) - (userImage.height / 2) * scale;
-    
-    ctx.drawImage(userImage, x, y, userImage.width * scale, userImage.height * scale);
-
-    // Moldura
-    const frameImg = new Image();
-    frameImg.src = selectedTemplate.frame;
-    frameImg.crossOrigin = "anonymous";
-    frameImg.onload = () => {
-        ctx.drawImage(frameImg, 0, 1080, width, 400);
-        document.getElementById('final-result').src = canvas.toDataURL('image/png', 1.0);
-    };
-    frameImg.onerror = () => {
-        console.error("Erro ao carregar moldura: " + selectedTemplate.frame);
-    }
+    // Barra de progresso
+    const w = step === 1 ? '33%' : step === 2 ? '66%' : '100%';
+    document.getElementById('progress-bar').style.width = w;
+    window.scrollTo({top:0, behavior:'smooth'});
 }
 
 function downloadImage() {
     const link = document.createElement('a');
-    link.download = `apoio_${selectedTemplate.id}_${Date.now()}.png`;
+    link.download = `meu-apoio-${Date.now()}.png`;
     link.href = document.getElementById('final-result').src;
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
 }
 
 async function shareImage() {
     const dataUrl = document.getElementById('final-result').src;
     const blob = await (await fetch(dataUrl)).blob();
     const file = new File([blob], "apoio.png", { type: "image/png" });
-
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                files: [file],
-                title: 'Meu Apoio 2026',
-            });
-        } catch (err) {
-            console.log(err);
-        }
+    
+    if(navigator.share) {
+        navigator.share({ files: [file], title: "Meu Apoio 2026" });
     } else {
+        alert("Baixe a imagem para compartilhar!");
         downloadImage();
     }
 }
